@@ -31,14 +31,14 @@ Prefer a standalone app? `backend/build_exe.ps1` builds `backend/dist/Part To Me
   <img src="docs/xray.png" width="100%" alt="The same example house as an x-ray: hundreds of internal faces between touching parts are filled red; next to it, the finished mesh.">
 </picture>
 
-The finished `.glb` is uploaded through Open Cloud as a `Model` asset owned by your user or group, and the plugin inserts it into your place.
+The counts in these pictures are computed from the example house they show; they are not a benchmark. Your savings depend on how solid your build is: thick walls and floors lose the most.
 
 <picture>
   <source media="(max-width: 600px)" srcset="docs/steps-phone.png">
   <img src="docs/steps.png" width="100%" alt="Three steps: faces where two parts touch are dropped; a 4 by 3 slab of parts becomes one flat face; studs on top become a texture instead of geometry.">
 </picture>
 
-The counts in these pictures are computed from the example house they show; they are not a benchmark. Your savings depend on how solid your build is: thick walls and floors lose the most.
+The finished `.glb` is uploaded through Open Cloud as a `Model` asset owned by your user or group, and the plugin inserts it into your place.
 
 > [!IMPORTANT]
 > Only `Part` instances with `Shape = Block` are converted. Wedges, cylinders, spheres, unions, MeshParts and CSG are not supported yet.
