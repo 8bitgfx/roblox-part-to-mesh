@@ -1,0 +1,37 @@
+<!doctype html><html><head><meta charset="utf-8"><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="base.css">
+<style>body{width:1600px;height:640px}
+.p{position:absolute;top:450px;width:440px}
+.p b{display:block;font:800 44px/1 var(--display);letter-spacing:-.03em;margin-bottom:12px}
+.p span{font:400 26px/1.35 var(--text)}
+.n{position:absolute;top:56px;font:800 56px/1 var(--display);letter-spacing:-.03em}</style></head><body>
+<canvas id="c" width="1600" height="640"></canvas>
+<div class="n" style="left:72px">1</div><div class="n" style="left:584px">2</div><div class="n" style="left:1096px">3</div>
+<div class="p" style="left:72px"><b>Drop touching faces</b><span>Where two parts meet, both faces go.</span></div>
+<div class="p" style="left:584px"><b>Merge flat runs</b><span>Same colour, same plane: one face.</span></div>
+<div class="p" style="left:1096px"><b>Bake the studs</b><span>Studs become texture, not geometry.</span></div>
+<script src="iso.js"></script><script>
+const ctx=c.getContext('2d');
+const vox=(arr)=>{const m=new Map();arr.forEach(([x,y,z,c])=>m.set(x+','+y+','+z,{x,y,z,c}));return m};
+const pal={a:'#E5392A',b:'#2F6BFF',g:'#9AA0A6'};
+// 1: two red parts pulled apart, the touching faces shown
+const two=vox([[0,0,0,'a'],[1,0,0,'b']]);
+ISO.draw(ctx,{voxels:two,mode:'parts',s:96,ox:250,oy:180,explodeXY:1.1,palette:pal,outline:'#17140F',lw:3});
+// mark the touching faces: +x face of first cube and -x face of second (as a slab between)
+ctx.save();ctx.setLineDash([10,8]);ctx.strokeStyle='#17140F';ctx.lineWidth=3;
+const P=(x,y,z)=>[250+(x-y)*96*.866,180+(x+y)*96*.5-z*96];
+const f=[P(1,0,1),P(1,1,1),P(1,1,0),P(1,0,0)];
+ctx.beginPath();f.forEach((p,i)=>i?ctx.lineTo(...p):ctx.moveTo(...p));ctx.closePath();ctx.stroke();
+ctx.setLineDash([]);ctx.lineWidth=7;ctx.strokeStyle='#17140F';
+const m=[(f[0][0]+f[2][0])/2,(f[0][1]+f[2][1])/2];
+ctx.beginPath();ctx.moveTo(m[0]-26,m[1]-26);ctx.lineTo(m[0]+26,m[1]+26);ctx.moveTo(m[0]+26,m[1]-26);ctx.lineTo(m[0]-26,m[1]+26);ctx.stroke();ctx.restore();
+// 2: a 4x3 slab as parts (left half) vs one merged face
+const slab=[];for(let x=0;x<4;x++)for(let y=0;y<3;y++)slab.push([x,y,0,'b']);
+ISO.draw(ctx,{voxels:vox(slab),mode:'mesh',s:62,ox:800,oy:210,palette:pal,wire:'#17140F',wlw:3,studs:false});
+// draw the old unit grid faintly on top to show what merged
+ctx.strokeStyle='rgba(23,20,15,.28)';ctx.lineWidth=1.5;ctx.setLineDash([6,6]);
+const Q=(x,y,z)=>[800+(x-y)*62*.866,210+(x+y)*62*.5-z*62];
+ctx.beginPath();for(let x=1;x<4;x++){ctx.moveTo(...Q(x,0,1));ctx.lineTo(...Q(x,3,1));}for(let y=1;y<3;y++){ctx.moveTo(...Q(0,y,1));ctx.lineTo(...Q(4,y,1));}ctx.stroke();ctx.setLineDash([]);
+// 3: studded part vs baked
+ISO.draw(ctx,{voxels:vox([[0,0,0,'a']]),mode:'parts',s:110,ox:1240,oy:210,palette:pal,outline:'#17140F',lw:3,studs:true});
+ISO.draw(ctx,{voxels:vox([[0,0,0,'a']]),mode:'mesh',s:110,ox:1440,oy:270,palette:pal,wire:'#17140F',wlw:3,studs:true});
+</script></body></html>

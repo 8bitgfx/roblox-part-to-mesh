@@ -1,112 +1,135 @@
-# Roblox Mesh Optimizer
+# roblox-part-to-mesh
 
-This project gives you:
+A Roblox Studio plugin that bakes a build made of block Parts into one textured MeshPart, with the faces nobody can see removed.
 
-- a local backend at `http://127.0.0.1:8788`
-- a Studio plugin source file that sends the selected model to that backend
-- a one-click flow that uploads the generated mesh as a Roblox `Model` asset, loads it back into Studio, and replaces the original selection
-- a file-based optimization pipeline:
-  1. build a source `.glb`
-  2. run headless Blender with HiddenGeometryRemoval to delete hidden/internal faces
-  3. upload the Blender-cleaned `.glb` to Roblox
-  4. run `gltfpack` as a secondary packed artifact for offline inspection
-  5. optionally run `gltf-transform optimize` before `gltfpack`
+<p align="center">
+  <img src="docs/hero.png" width="100%" alt="An example house of 144 one-stud Parts, pulled apart, turns into a single outlined mesh with the same shape, colours and studs.">
+</p>
 
-## Current scope
+```text
+1. Run the backend:   python backend/app.py        (paste your Open Cloud key once)
+2. Install the plugin: copy "plugin/Mesh To Part.rbxmx" into your Studio Plugins folder
+```
 
-This version is functional for block-part selections:
+Select a model and click **Optimize Selected Model**. The mesh is uploaded as a Roblox asset and dropped into Studio as `<name>_Optimized`, right beside your original, which stays untouched.
 
-- supports `Part` instances with `Shape = Block`
-- preserves part colors by baking a simple texture atlas
-- keeps Roblox submodels as separate mesh nodes instead of flattening the whole selection into one mesh
-- removes hidden inner faces with Blender HiddenGeometryRemoval
-- still does lightweight face culling/merging before export for simple axis-aligned blocks
-- uploads the Blender-cleaned `.glb` as a Roblox `Model` through Open Cloud
-- still writes a `gltfpack` artifact, but does not upload it to Roblox because current Roblox import turns that file into a tiny MeshPart and loses the texture
+## What it does
 
-It does not yet support wedges, cylinders, unions, MeshParts, or arbitrary CSG.
+<p align="center">
+  <img src="docs/steps.png" width="100%" alt="Three steps: faces where two parts touch are dropped; a 4 by 3 slab of parts becomes one flat face; studs on top become a texture instead of geometry.">
+</p>
 
-## Files
+| Step | What happens to your build |
+|---|---|
+| Drop touching faces | Every face pressed against another part is deleted. Nobody can see it. |
+| Merge flat runs | Neighbouring faces of the same colour on the same plane become one rectangle. |
+| Bake the studs | Part colours and the stud pattern go into one texture atlas, so studs cost no triangles. |
+| Upload | The mesh goes to Open Cloud as a `Model` asset under your user or group, then lands beside your original in Studio. |
 
-- `backend/server.py`
-- `backend/start_backend.bat`
-- `plugin/StudMeshOptimizer.lua`
+<p align="center">
+  <img src="docs/xray.png" width="100%" alt="The same example house as an x-ray: hundreds of internal faces between touching parts are filled red; next to it, the finished mesh.">
+</p>
 
-## Backend setup
+The numbers in these pictures come from the example house drawn in them, not from a benchmark. Your savings depend on how tightly packed your build is: solid walls and floors lose the most.
 
-Set these environment variables before running the backend:
+## How it works
+
+```mermaid
+flowchart TD
+    A[Select a model in Studio] --> B[Plugin sends the Parts to the local backend]
+    B --> C[Backend drops touching faces and merges flat runs]
+    C --> D[Bakes colours and studs into a texture atlas]
+    D --> E[Writes a .glb]
+    E --> F[Uploads it through Open Cloud]
+    F --> G[Plugin inserts the new asset beside the original]
+```
+
+The plugin only talks to `127.0.0.1`. Your Open Cloud key stays on your machine, in the backend.
+
+## Two backends
+
+| | Desktop app | Pipeline server |
+|---|---|---|
+| Start | `python backend/app.py`, or the built `.exe` | `python backend/server.py` |
+| Port | `8790` (the plugin's default) | `8788` (set the URL in the plugin) |
+| API key | Typed into the app's setup window | `ROBLOX_OPEN_CLOUD_API_KEY` environment variable |
+| Hidden faces | Removed in Python | Removed in headless Blender with HiddenGeometryRemoval |
+| Needs | Python 3.10+ | Python, Blender 4.x+, `gltfpack`; `gltf-transform` optional |
+| Use it when | You want it working in two minutes | You want Blender's cleanup and a packed `.glb` to inspect |
+
+## Install
+
+**Backend.** Install the Python packages, then start the app:
 
 ```powershell
-$env:ROBLOX_OPEN_CLOUD_API_KEY = "your-key"
+pip install -r backend/requirements.txt
+python backend/app.py
+```
+
+On first run it asks for your Open Cloud API key. Create one at [create.roblox.com/dashboard/credentials](https://create.roblox.com/dashboard/credentials) with the **Assets** API (read and write) for the user or group that should own the meshes.
+
+To build a standalone Windows app instead: `backend/build_exe.ps1` writes `backend/dist/Mesh To Part Backend.exe`.
+
+**Plugin.** Copy `plugin/Mesh To Part.rbxmx` into your local plugins folder (in Studio: **Plugins → Plugins Folder**), then restart Studio. Turn on **Game Settings → Security → Allow HTTP Requests**.
+
+## Use it
+
+Open the panel from the **Mesh Optimizer** toolbar button and fill it in once:
+
+| Field | What to put there |
+|---|---|
+| Backend URL | `http://127.0.0.1:8790` (desktop app) or `:8788` (pipeline server) |
+| Creator type | `user` or `group` |
+| Creator ID | Your user ID or group ID: the owner of the uploaded asset |
+| Stud size | Bigger studs, fewer repeats on each face |
+| Stud opacity | How dark the baked studs are; above 1.00 pushes them darker |
+
+Select one model built from block Parts and click **Optimize Selected Model**.
+
+> [!IMPORTANT]
+> Only `Part` instances with `Shape = Block` are converted. Wedges, cylinders, spheres, unions, MeshParts and CSG are not supported yet.
+
+<details>
+<summary>Pipeline server: Blender and gltfpack setup</summary>
+
+```powershell
+$env:ROBLOX_OPEN_CLOUD_API_KEY = "<your key>"
 $env:ROBLOX_MESH_OPTIMIZER_BLENDER = "C:\Program Files\Blender Foundation\Blender 4.5\blender.exe"
 $env:ROBLOX_MESH_OPTIMIZER_GLTFPACK = "C:\path\to\gltfpack.exe"
-python C:\Users\user\Documents\Playground\roblox_mesh_optimizer\backend\server.py
+python backend/server.py
 ```
 
-The backend expects:
+Blender is also found on `PATH` or in the default `C:\Program Files\Blender Foundation\Blender*` folder; `gltfpack` on `PATH`.
 
-- Blender on PATH, in `ROBLOX_MESH_OPTIMIZER_BLENDER`, or in the default `C:\Program Files\Blender Foundation\Blender*\blender.exe` location
-- `gltfpack` on PATH or in `ROBLOX_MESH_OPTIMIZER_GLTFPACK`
-- the bundled add-on file at `backend/vendor/HiddenGeometryRemoval.py`
+| Variable | Default | Does |
+|---|---|---|
+| `ROBLOX_MESH_OPTIMIZER_USE_GLTF_TRANSFORM` | off | `1` runs `gltf-transform optimize` before `gltfpack` (`npm i -g @gltf-transform/cli`) |
+| `ROBLOX_MESH_OPTIMIZER_GLTF_TRANSFORM` | on `PATH` | Path to `gltf-transform` |
+| `ROBLOX_MESH_OPTIMIZER_GLTFPACK_ARGS` | | Extra `gltfpack` flags, e.g. `-cc -tc` |
+| `ROBLOX_MESH_OPTIMIZER_HGR_ROWS` | | HiddenGeometryRemoval camera rows |
+| `ROBLOX_MESH_OPTIMIZER_HGR_CAMERAS_PER_ROW` | | Cameras per row |
+| `ROBLOX_MESH_OPTIMIZER_HGR_PRECISION` | | e.g. `HIGH` |
 
-Optional:
+Intermediate files land in `backend/out/jobs/<job>/`: `source.glb`, `cleaned.glb` (the one uploaded to Roblox), `transformed.glb` (with gltf-transform) and `final.glb` (the `gltfpack` output, kept for comparison; Roblox's importer drops its texture, so it is not uploaded).
+
+Self-test, which writes `backend/out/selftest.glb`:
 
 ```powershell
-$env:ROBLOX_MESH_OPTIMIZER_USE_GLTF_TRANSFORM = "1"
-$env:ROBLOX_MESH_OPTIMIZER_GLTF_TRANSFORM = "C:\Users\user\AppData\Roaming\npm\gltf-transform.cmd"
+python backend/server.py --self-test
 ```
 
-Optional overrides:
+</details>
 
-```powershell
-$env:ROBLOX_MESH_OPTIMIZER_GLTFPACK_ARGS = "-cc -tc"
-$env:ROBLOX_MESH_OPTIMIZER_HGR_ROWS = "6"
-$env:ROBLOX_MESH_OPTIMIZER_HGR_CAMERAS_PER_ROW = "6"
-$env:ROBLOX_MESH_OPTIMIZER_HGR_PRECISION = "HIGH"
-```
+<details>
+<summary>The backend says <code>uploadConfigured: false</code></summary>
 
-If you want the optional Node cleanup step:
+Check `Invoke-RestMethod http://127.0.0.1:8788/health` (or `:8790`). `uploadConfigured: false` means no API key reached the backend: paste it in the desktop app, or start the pipeline server from the same shell where you set `ROBLOX_OPEN_CLOUD_API_KEY`. `optimizerConfigured: false` means Blender or `gltfpack` was not found.
 
-```powershell
-npm install --global @gltf-transform/cli
-```
+</details>
 
-The backend health endpoint now reports both upload readiness and optimizer readiness:
+## Credits
 
-Health check:
-
-```powershell
-Invoke-RestMethod http://127.0.0.1:8788/health
-
-# If you see `"uploadConfigured": false`, restart the backend in the same shell
-# where ROBLOX_OPEN_CLOUD_API_KEY is set.
-# If you see `"optimizerConfigured": false`, install/configure Blender and gltfpack.
-```
-
-## Plugin setup
-
-1. Create a new local Studio plugin script.
-2. Paste in the contents of `plugin/StudMeshOptimizer.lua`.
-3. Enable Studio HTTP requests.
-4. Open the widget from the new toolbar button.
-5. Fill in:
-   - backend URL
-   - creator type: `user` or `group`
-   - creator ID
-6. Select one model made from block parts.
-7. Click `Optimize Selected Model`.
-
-## Local test
-
-This writes a sample GLB to `backend/out/selftest.glb`:
-
-```powershell
-python C:\Users\user\Documents\Playground\roblox_mesh_optimizer\backend\server.py --self-test
-```
-
-The external pipeline keeps intermediate files in `backend/out/jobs/`:
-
-- `source.glb`
-- `cleaned.glb` - this is the Roblox upload artifact
-- `transformed.glb` when `gltf-transform` is enabled
-- `final.glb` - this is the `gltfpack` artifact kept for comparison/debugging
+- Hidden-face removal in the pipeline server uses **HiddenGeometryRemoval** by Seungwoo Lee (MIT), vendored in `backend/vendor/`.
+- The stud texture is based on **dudeax/Roblox-HD-Studs**.
+- Meshes are written with [trimesh](https://github.com/mikedh/trimesh) and packed with [gltfpack](https://github.com/zeux/meshoptimizer).
+- The README pictures are drawn in code in [`docs/art/`](docs/art/); re-render them with `sh docs/art/render.sh`.

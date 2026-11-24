@@ -1,0 +1,9 @@
+/* Toybox: tokens for the README art. Rendered to PNG; GitHub never sees this CSS. */
+:root{--ground:#FFCF2E;--ink:#17140F;--red:#E5392A;--blue:#2F6BFF;--green:#3DBE5B;--stone:#9AA0A6;
+--display:'Bricolage Grotesque',sans-serif;--text:'Atkinson Hyperlegible',sans-serif}
+*{margin:0;box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font-family:var(--text);overflow:hidden;position:relative}
+h1,h2{font-family:var(--display);font-weight:800;letter-spacing:-.045em;line-height:.95;text-wrap:balance}
+.cap{position:absolute;font:700 30px/1.25 var(--text)}
+.cap span{display:block;font-weight:400}
+canvas{position:absolute;left:0;top:0}
