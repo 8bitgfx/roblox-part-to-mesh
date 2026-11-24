@@ -1,15 +1,16 @@
 <!doctype html><html><head><meta charset="utf-8"><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="base.css">
 <style>body{width:1600px;height:1000px}h1{position:absolute;left:72px;top:64px;font-size:124px;max-width:13ch}
-body.phone{width:800px;height:1480px}body.phone h1{left:48px;top:48px;font-size:96px}body.phone .cap{font-size:36px}</style></head><body>
+body.phone{width:800px;height:1480px}body.phone h1{left:48px;top:48px;font-size:96px}body.phone .cap{font-size:36px}
+body.social{width:1280px;height:640px}body.social h1{left:56px;top:52px;font-size:84px}body.social .cap{font-size:28px}</style></head><body>
 <canvas id="c"></canvas>
 <h1>Many parts in. One mesh out.</h1>
 <div class="cap" id="a"></div><div class="cap" id="b"></div>
 <script src="iso.js"></script><script src="arrow.js"></script><script>
 const pal={stone:'#9AA0A6',brick:'#E5392A',glass:'#7FB2FF',roof:'#2F6BFF',trunk:'#8A5A2B',leaf:'#3DBE5B'};
-const PHONE=location.hash==='#phone';
-const L=PHONE?{w:800,h:1480,p:{s:27,ox:400,oy:580},m:{s:32,ox:400,oy:1090},ar:[400,810,110,'down'],a:[48,280],b:[48,1350],
+const PHONE=location.hash==='#phone',SOCIAL=location.hash==='#social';
+const L=SOCIAL?{w:1280,h:640,p:{s:17,ox:300,oy:425},m:{s:30,ox:975,oy:300},ar:[575,430,90,'right'],a:[56,572],b:[56,572]}:PHONE?{w:800,h:1480,p:{s:27,ox:400,oy:580},m:{s:32,ox:400,oy:1090},ar:[400,810,110,'down'],a:[48,280],b:[48,1350],
   aT:'',bT:''}:{w:1600,h:1000,p:{s:29,ox:400,oy:600},m:{s:38,ox:1230,oy:540},ar:[735,650,140,'right'],a:[72,872],b:[930,872]};
-if(PHONE)document.body.className='phone';
+if(PHONE)document.body.className='phone';if(SOCIAL)document.body.className='social';
 c.width=L.w;c.height=L.h;
 const ctx=c.getContext('2d');
 ISO.draw(ctx,{mode:'parts',...L.p,explodeXY:.16,explodeZ:.45,palette:pal,outline:'#17140F',lw:1.5,studs:true});
@@ -20,4 +21,5 @@ Object.assign(a.style,{left:L.a[0]+'px',top:L.a[1]+'px'});Object.assign(b.style,
 a.innerHTML=st.parts+' Parts<span>one per brick in this example</span>';
 b.innerHTML='1 MeshPart<span>'+q+' faces after merging, studs baked in</span>';
 if(PHONE){a.style.left='48px';a.style.top='296px';}
+if(SOCIAL){a.innerHTML='roblox-part-to-mesh';b.remove();}
 </script></body></html>
