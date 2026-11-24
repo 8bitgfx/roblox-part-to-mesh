@@ -4,15 +4,15 @@
 cd "$(dirname "$0")"
 D="$(pwd -W 2>/dev/null || pwd)"
 B="${BROWSER_BIN:-/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe}"
-shot() {
+shot() { # name size [hash] [out]
   P="$(mktemp -d)"; W="$P"; command -v cygpath >/dev/null && W="$(cygpath -w "$P")"
   "$B" --headless=new --disable-gpu --hide-scrollbars --no-first-run --user-data-dir="$W" \
     --force-device-scale-factor=2 --virtual-time-budget=6000 --window-size="$2" \
-    --screenshot="$D/../$1.png" "file:///$D/$1.html"
+    --screenshot="$D/../${4:-$1}.png" "file:///$D/$1.html$3"
 }
-shot hero 1600,1000
-shot xray 1600,860
-shot steps 1600,640
+shot hero 1600,1000;  shot hero 800,1480 '#phone' hero-phone
+shot xray 1600,860;   shot xray 800,1540 '#phone' xray-phone
+shot steps 1600,680;  shot steps 800,1500 '#phone' steps-phone
 # Edge on Windows returns before the headless child writes the file
-sleep 10
+sleep 12
 ls -la ../*.png

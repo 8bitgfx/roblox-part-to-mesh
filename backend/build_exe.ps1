@@ -7,7 +7,7 @@ python -m PyInstaller `
   --clean `
   --onefile `
   --windowed `
-  --name "Mesh To Part Backend" `
+  --name "Part To Mesh Backend" `
   --add-data "assets\Studs 4x4 AO Diffuse.png;assets" `
   --add-data "assets\Studs 4x4 Normal.png;assets" `
   app.py

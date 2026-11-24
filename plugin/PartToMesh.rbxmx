@@ -1,4 +1,9 @@
-local ChangeHistoryService = game:GetService("ChangeHistoryService")
+<roblox xmlns:xmime="http://www.w3.org/2005/05/xmlmime" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.roblox.com/roblox.xsd" version="4">
+	<External>null</External>
+	<External>nil</External>
+	<Item class="Script" referent="RBX24DA73D28E6B48C0ACCACE73BC8EFFA2">
+		<Properties>
+			<ProtectedString name="Source"><![CDATA[local ChangeHistoryService = game:GetService("ChangeHistoryService")
 local HttpService = game:GetService("HttpService")
 local InsertService = game:GetService("InsertService")
 local Selection = game:GetService("Selection")
@@ -11,8 +16,10 @@ local DEFAULT_TEXTURE_SCALE = 1.25
 local DEFAULT_TEXTURE_OPACITY = 0.45
 local MAX_TEXTURE_OPACITY = 2.5
 local OPACITY_SEND_MULTIPLIER = 2
+local JOB_POLL_INTERVAL = 1
+local JOB_POLL_ATTEMPTS = 180
 
-local pluginToolbar = plugin:CreateToolbar("Mesh Optimizer")
+local pluginToolbar = plugin:CreateToolbar("Part To Mesh")
 local toggleButton = pluginToolbar:CreateButton(
 	BUTTON_ID,
 	"Optimize the selected model through a local backend",
@@ -31,7 +38,7 @@ local widgetInfo = DockWidgetPluginGuiInfo.new(
 )
 
 local widget = plugin:CreateDockWidgetPluginGui(WIDGET_ID, widgetInfo)
-widget.Title = "Stud Mesh Optimizer"
+widget.Title = "Part To Mesh"
 
 local root = Instance.new("Frame")
 root.Size = UDim2.fromScale(1, 1)
@@ -360,29 +367,11 @@ updatePreview()
 
 previewFrame:GetPropertyChangedSignal("AbsoluteSize"):Connect(updatePreview)
 
-local function getMeshGroupPath(selectionRoot, part)
-	if selectionRoot:IsA("BasePart") then
-		return selectionRoot.Name
-	end
-
-	local current = part.Parent
-
-	while current and current ~= selectionRoot do
-		if current.Parent == selectionRoot and current:IsA("Model") then
-			return current.Name
-		end
-		current = current.Parent
-	end
-
-	return selectionRoot.Name
-end
-
 local function collectParts(selectionRoot)
 	local parts = {}
 
 	if selectionRoot:IsA("BasePart") then
 		table.insert(parts, selectionRoot)
-		return parts
 	end
 
 	for _, descendant in ipairs(selectionRoot:GetDescendants()) do
@@ -410,14 +399,16 @@ local function serializeSelection(selectionRoot)
 
 		local relative = pivot:ToObjectSpace(part.CFrame)
 		local rx, ry, rz = relative:ToOrientation()
-		local _, _, _, r00, r01, r02, r10, r11, r12, r20, r21, r22 = relative:GetComponents()
 		table.insert(payloadParts, {
 			name = part.Name,
-			meshGroup = getMeshGroupPath(selectionRoot, part),
 			size = { part.Size.X, part.Size.Y, part.Size.Z },
 			pos = { relative.Position.X, relative.Position.Y, relative.Position.Z },
 			rot = { math.deg(rx), math.deg(ry), math.deg(rz) },
-			rotationMatrix = { r00, r01, r02, r10, r11, r12, r20, r21, r22 },
+			basis = {
+				x = { relative.XVector.X, relative.XVector.Y, relative.XVector.Z },
+				y = { relative.YVector.X, relative.YVector.Y, relative.YVector.Z },
+				z = { relative.ZVector.X, relative.ZVector.Y, relative.ZVector.Z },
+			},
 			rgb = {
 				roundColor(part.Color.R),
 				roundColor(part.Color.G),
@@ -456,19 +447,6 @@ local function requestOptimize(payload)
 	if not healthData.uploadConfigured then
 		error("The backend is running, but ROBLOX_OPEN_CLOUD_API_KEY is not set on that server process.")
 	end
-	if healthData.optimizerConfigured == false then
-		local missing = ""
-		if typeof(healthData.optimizer) == "table" and typeof(healthData.optimizer.missing) == "table" then
-			local parts = {}
-			for _, item in ipairs(healthData.optimizer.missing) do
-				table.insert(parts, tostring(item))
-			end
-			if #parts > 0 then
-				missing = " Missing: " .. table.concat(parts, ", ")
-			end
-		end
-		error("The backend is running, but the external optimizer pipeline is not configured." .. missing)
-	end
 
 	local response = HttpService:RequestAsync({
 		Url = baseUrl .. "/optimize",
@@ -498,28 +476,44 @@ local function requestOptimize(payload)
 	if not data.ok then
 		error(data.error or "The backend returned an error.")
 	end
-
-	if typeof(data.assetId) ~= "number" then
-		error("The backend finished, but it did not return an assetId.")
+	if typeof(data.jobId) ~= "string" then
+		error("The backend did not return a jobId.")
 	end
 
-	return data
-end
+	for _ = 1, JOB_POLL_ATTEMPTS do
+		task.wait(JOB_POLL_INTERVAL)
+		local jobResponse = HttpService:RequestAsync({
+			Url = baseUrl .. "/jobs/" .. data.jobId,
+			Method = "GET",
+		})
 
-local function formatByteCount(value)
-	if typeof(value) ~= "number" then
-		return "?"
+		if not jobResponse.Success then
+			local detail = jobResponse.StatusMessage ~= "" and jobResponse.StatusMessage or "Job status request failed"
+			if jobResponse.Body and jobResponse.Body ~= "" then
+				local ok, decoded = pcall(function()
+					return HttpService:JSONDecode(jobResponse.Body)
+				end)
+				if ok and typeof(decoded) == "table" and typeof(decoded.error) == "string" then
+					detail = decoded.error
+				end
+			end
+			error(detail)
+		end
+
+		local jobData = HttpService:JSONDecode(jobResponse.Body)
+		if jobData.state == "done" then
+			if typeof(jobData.assetId) ~= "number" then
+				error("The backend finished, but it did not return an assetId.")
+			end
+			return jobData
+		end
+
+		if jobData.state == "failed" then
+			error(jobData.error or "The backend job failed.")
+		end
 	end
 
-	if value >= 1024 * 1024 then
-		return string.format("%.2f MB", value / (1024 * 1024))
-	end
-
-	if value >= 1024 then
-		return string.format("%.1f KB", value / 1024)
-	end
-
-	return string.format("%d B", value)
+	error("The backend job timed out before completion.")
 end
 
 local function addOptimizedResult(selectionRoot, pivot, assetId)
@@ -567,40 +561,25 @@ end
 local function buildStatusLine(data)
 	local stats = data.stats or {}
 	local texture = data.texture or {}
-	local optimization = data.optimization or {}
 	local sourceFaces = tostring(stats.sourceFaces or "?")
 	local outputFaces = tostring(stats.outputFaces or "?")
 	local culledFaces = tostring(stats.fullyCulledFaces or 0)
 	local mergedFaces = tostring(stats.mergedFaces or 0)
-	local meshGroups = tostring(stats.meshGroups or 1)
 	local scale = tostring(texture.scale or "?")
 	local opacity = tostring(texture.opacity or "?")
 	local signature = tostring(texture.signature or "?")
-	local sourceBytes = formatByteCount(optimization.sourceGlbBytes)
-	local uploadBytes = formatByteCount(optimization.uploadGlbBytes or data.glbBytes)
-	local packedBytes = formatByteCount(optimization.finalGlbBytes)
-	local usedPacked = optimization.usedPackedGlbForUpload == true
 
-	local status = string.format(
-		"Done. Asset %d uploaded. %s source -> %s output across %s mesh groups. Hidden removed: %s. Merged: %s. Upload GLB %s -> %s. Texture scale %s opacity %s (%s).",
+	return string.format(
+		"Done. Asset %d uploaded. %s source -> %s output. Hidden removed: %s. Merged: %s. Texture scale %s opacity %s (%s).",
 		data.assetId,
 		sourceFaces,
 		outputFaces,
-		meshGroups,
 		culledFaces,
 		mergedFaces,
-		sourceBytes,
-		uploadBytes,
 		scale,
 		opacity,
 		signature
 	)
-
-	if packedBytes ~= "?" and not usedPacked then
-		status = status .. string.format(" Packed artifact: %s.", packedBytes)
-	end
-
-	return status
 end
 
 local function optimizeSelection()
@@ -640,3 +619,17 @@ widget:GetPropertyChangedSignal("Enabled"):Connect(function()
 end)
 
 setStatus("Ready. Studio HTTP must be enabled, and the backend must be running.", false)
+]]></ProtectedString>
+			<bool name="Disabled">false</bool>
+			<Content name="LinkedSource"><null></null></Content>
+			<token name="RunContext">3</token>
+			<string name="ScriptGuid">{EBC0F42A-4606-4A7B-B400-FA1FFB8AB2B8}</string>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<string name="Name">Part To Mesh</string>
+			<int64 name="SourceAssetId">-1</int64>
+			<BinaryString name="Tags"></BinaryString>
+		</Properties>
+	</Item>
+</roblox>

@@ -27,7 +27,7 @@ class MeshToPartApp:
             return
 
         self.root = tk.Tk()
-        self.root.title("Mesh To Part Backend")
+        self.root.title("Part To Mesh Backend")
         self.root.geometry("460x260")
         self.root.minsize(460, 260)
         self.root.resizable(True, True)
@@ -52,7 +52,7 @@ class MeshToPartApp:
         frame = ttk.Frame(self.root, padding=16)
         frame.pack(fill="both", expand=True)
 
-        ttk.Label(frame, text="Mesh To Part Backend", font=("Segoe UI", 14, "bold")).pack(anchor="w")
+        ttk.Label(frame, text="Part To Mesh Backend", font=("Segoe UI", 14, "bold")).pack(anchor="w")
         ttk.Label(
             frame,
             text="Run this once, keep it open while Studio uses the plugin, and pin the exe if you want quick access.",

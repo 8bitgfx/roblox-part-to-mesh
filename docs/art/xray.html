@@ -1,23 +1,24 @@
 <!doctype html><html><head><meta charset="utf-8"><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="base.css">
 <style>body{width:1600px;height:860px;background:var(--ink);color:var(--ground)}
-h2{position:absolute;left:72px;top:56px;font-size:72px;letter-spacing:-.03em;max-width:20ch}
-.cap{color:var(--ground)}</style></head><body>
-<canvas id="c" width="1600" height="860"></canvas>
+h2{position:absolute;left:72px;top:56px;font-size:72px;letter-spacing:-.03em;max-width:20ch}.cap{color:var(--ground)}
+body.phone{width:800px;height:1540px}body.phone h2{left:48px;top:48px;font-size:72px;max-width:11ch}body.phone .cap{font-size:36px}</style></head><body>
+<canvas id="c"></canvas>
 <h2>The faces nobody can see go first.</h2>
-<div class="cap" id="a" style="left:72px;top:740px"></div>
-<div class="cap" id="b" style="left:930px;top:740px"></div>
-<script src="iso.js"></script><script>
+<div class="cap" id="a"></div><div class="cap" id="b"></div>
+<script src="iso.js"></script><script src="arrow.js"></script><script>
 const pal={stone:'#9AA0A6',brick:'#E5392A',glass:'#7FB2FF',roof:'#2F6BFF',trunk:'#8A5A2B',leaf:'#3DBE5B'};
-const ctx=c.getContext('2d');
-// left: x-ray, hidden faces filled red inside a yellow wire shell
-ISO.draw(ctx,{mode:'xray',s:34,ox:420,oy:400,palette:pal,hidden:'#E5392A',ink:'#17140F',lw:1.2});
+const PHONE=location.hash==='#phone';
+if(PHONE)document.body.className='phone';
+const L=PHONE?{w:800,h:1540,x:{s:30,ox:390,oy:520},m:{s:30,ox:390,oy:1180},ar:[400,880,100,'down'],a:[48,760],b:[48,1410]}
+ :{w:1600,h:860,x:{s:34,ox:420,oy:400},m:{s:34,ox:1240,oy:400},ar:[745,560,122,'right'],a:[72,740],b:[930,740]};
+c.width=L.w;c.height=L.h;const ctx=c.getContext('2d');
+ISO.draw(ctx,{mode:'xray',...L.x,palette:pal,hidden:'#E5392A',ink:'#17140F',lw:1.2});
 const shell=Object.fromEntries(Object.keys(pal).map(k=>[k,'#17140F']));
-ctx.globalAlpha=1;
-ISO.draw(ctx,{mode:'mesh',s:34,ox:420,oy:400,palette:shell,wire:'#FFCF2E',wlw:2,studs:false,skipFill:true});
-ctx.strokeStyle='#FFCF2E';ctx.lineWidth=10;ctx.lineCap='round';ctx.lineJoin='round';
-ctx.beginPath();ctx.moveTo(745,560);ctx.lineTo(865,560);ctx.moveTo(835,530);ctx.lineTo(867,560);ctx.lineTo(835,590);ctx.stroke();
-ISO.draw(ctx,{mode:'mesh',s:34,ox:1240,oy:400,palette:pal,wire:'#17140F',wlw:2,studs:true});
+ISO.draw(ctx,{mode:'mesh',...L.x,palette:shell,wire:'#FFCF2E',wlw:2,studs:false,skipFill:true});
+arrow(ctx,...L.ar,'#FFCF2E',10);
+ISO.draw(ctx,{mode:'mesh',...L.m,palette:pal,wire:'#17140F',wlw:2,studs:true});
 const st=ISO.stats();
+Object.assign(a.style,{left:L.a[0]+'px',top:L.a[1]+'px'});Object.assign(b.style,{left:L.b[0]+'px',top:L.b[1]+'px'});
 a.innerHTML=(st.allFaces-st.faces)+' hidden faces<span>where parts touch, shown in red</span>';
 b.innerHTML=st.faces+' left to keep<span>then merged into flat runs</span>';
 </script></body></html>

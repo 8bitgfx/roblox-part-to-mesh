@@ -22,7 +22,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='Mesh To Part Backend',
+    name='Part To Mesh Backend',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

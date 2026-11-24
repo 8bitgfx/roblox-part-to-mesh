@@ -1,22 +1,8 @@
-# Mesh To Part Backend
+# Part To Mesh Backend
 
-Local Windows app for the `Mesh To Part` Roblox plugin.
+The local backend for the roblox-part-to-mesh Studio plugin. See the [main README](../README.md).
 
-## What it does
+- `app.py`: the desktop app (port 8790, API key in its setup window). Build it as an `.exe` with `build_exe.ps1`; the output is `dist\Part To Mesh Backend.exe`.
+- `server.py`: the pipeline server (port 8788, Blender + gltfpack, key from `ROBLOX_OPEN_CLOUD_API_KEY`).
 
-- Hosts `http://127.0.0.1:8790`
-- Accepts the plugin payload
-- Builds an optimized mesh from block parts
-- Removes only fully hidden coplanar faces
-- Merges safe coplanar rectangles
-- Bakes a stud texture atlas using `dudeax/Roblox-HD-Studs`
-- Uploads the result to Roblox Open Cloud as a `Model` asset
-
-## Build
-
-```powershell
-cd C:\Users\User\Documents\Playground\mesh_to_part_app
-.\build_exe.ps1
-```
-
-The packaged executable is written to `dist\Mesh To Part Backend.exe`.
+Settings and logs live in `%LOCALAPPDATA%\MeshToPartApp`.
