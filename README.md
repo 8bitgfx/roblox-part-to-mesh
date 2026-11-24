@@ -27,15 +27,15 @@ Prefer a standalone app? `backend/build_exe.ps1` builds `backend/dist/Part To Me
 ## What it does
 
 <picture>
-  <source media="(max-width: 600px)" srcset="docs/steps-phone.png">
-  <img src="docs/steps.png" width="100%" alt="Three steps: faces where two parts touch are dropped; a 4 by 3 slab of parts becomes one flat face; studs on top become a texture instead of geometry.">
+  <source media="(max-width: 600px)" srcset="docs/xray-phone.png">
+  <img src="docs/xray.png" width="100%" alt="The same example house as an x-ray: hundreds of internal faces between touching parts are filled red; next to it, the finished mesh.">
 </picture>
 
 The finished `.glb` is uploaded through Open Cloud as a `Model` asset owned by your user or group, and the plugin inserts it into your place.
 
 <picture>
-  <source media="(max-width: 600px)" srcset="docs/xray-phone.png">
-  <img src="docs/xray.png" width="100%" alt="The same example house as an x-ray: hundreds of internal faces between touching parts are filled red; next to it, the finished mesh.">
+  <source media="(max-width: 600px)" srcset="docs/steps-phone.png">
+  <img src="docs/steps.png" width="100%" alt="Three steps: faces where two parts touch are dropped; a 4 by 3 slab of parts becomes one flat face; studs on top become a texture instead of geometry.">
 </picture>
 
 The counts in these pictures are computed from the example house they show; they are not a benchmark. Your savings depend on how solid your build is: thick walls and floors lose the most.
@@ -49,19 +49,15 @@ The counts in these pictures are computed from the example house they show; they
 
 The plugin sends your Parts to a backend on your own machine. The backend builds and uploads the mesh, and your Open Cloud key never leaves it. There are two backends:
 
-| | Desktop app | Pipeline server |
-|---|---|---|
-| Start | `python backend/app.py` | `python backend/server.py` |
-| Plugin URL | `http://127.0.0.1:8790` (default) | `http://127.0.0.1:8788` |
-| API key | Setup window | `ROBLOX_OPEN_CLOUD_API_KEY` |
-| Hidden faces | Removed in Python | Removed in Blender (HiddenGeometryRemoval) |
-| Needs | Python 3.10+ | Python, Blender, `gltfpack` |
+**Desktop app** (the default). Start `python backend/app.py`, paste the key into its setup window, and point the plugin at `http://127.0.0.1:8790`. Hidden faces are removed in Python; it needs only Python 3.10+.
+
+**Pipeline server.** Start `python backend/server.py` with `ROBLOX_OPEN_CLOUD_API_KEY` set, and point the plugin at `http://127.0.0.1:8788`. Hidden faces are removed in headless Blender with HiddenGeometryRemoval, and `gltfpack` writes a packed copy to inspect. It needs Blender and `gltfpack` (setup below).
 
 ## Plugin settings
 
 | Field | What to put there |
 |---|---|
-| Backend URL | The plugin URL from the table above |
+| Backend URL | `http://127.0.0.1:8790`, or `:8788` for the pipeline server |
 | Creator type | `user` or `group` |
 | Creator ID | The user or group that will own the uploaded asset |
 | Stud size | Bigger studs, fewer repeats on each face |
