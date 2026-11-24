@@ -6,10 +6,12 @@ A Roblox Studio plugin that bakes a build made of block Parts into one textured 
   <img src="docs/hero.png" width="100%" alt="An example house of 144 one-stud Parts, pulled apart, turns into a single outlined mesh with the same shape, colours and studs.">
 </p>
 
-```text
-1. Run the backend:   python backend/app.py        (paste your Open Cloud key once)
-2. Install the plugin: copy "plugin/Mesh To Part.rbxmx" into your Studio Plugins folder
+```powershell
+pip install -r backend/requirements.txt
+python backend/app.py
 ```
+
+Paste your Open Cloud key into the window that opens, then copy `plugin/Mesh To Part.rbxmx` into Studio's plugins folder. Details are under [Install](#install).
 
 Select a model and click **Optimize Selected Model**. The mesh is uploaded as a Roblox asset and dropped into Studio as `<name>_Optimized`, right beside your original, which stays untouched.
 
@@ -34,17 +36,9 @@ The numbers in these pictures come from the example house drawn in them, not fro
 
 ## How it works
 
-```mermaid
-flowchart TD
-    A[Select a model in Studio] --> B[Plugin sends the Parts to the local backend]
-    B --> C[Backend drops touching faces and merges flat runs]
-    C --> D[Bakes colours and studs into a texture atlas]
-    D --> E[Writes a .glb]
-    E --> F[Uploads it through Open Cloud]
-    F --> G[Plugin inserts the new asset beside the original]
-```
+**Studio plugin** → **backend on `127.0.0.1`** → `.glb` → **Open Cloud** → **back into Studio**
 
-The plugin only talks to `127.0.0.1`. Your Open Cloud key stays on your machine, in the backend.
+The plugin sends your Parts to the backend on your own machine. The backend builds and uploads the mesh, and your Open Cloud key never leaves it.
 
 ## Two backends
 
